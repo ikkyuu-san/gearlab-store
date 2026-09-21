@@ -34,18 +34,13 @@ export function CheckoutForm() {
       note: String(formData.get("note") ?? ""),
       items: items.map((item) => ({ productId: item.id, quantity: item.quantity })),
     });
-    if ("error" in result) {
-      setError(result.error);
+    if (!("orderNumber" in result)) {
+      setError(result.error ?? "We could not complete the order. Please try again.");
       setPending(false);
       return;
     }
     clear();
-    if (!result.publicAccessToken) {
-      setError("Your order was created, but the confirmation link could not be prepared. Please contact GearLab.");
-      setPending(false);
-      return;
-    }
-    router.push(`/order/${encodeURIComponent(result.orderNumber)}?token=${encodeURIComponent(result.publicAccessToken)}`);
+    router.push(`/order/${encodeURIComponent(result.orderNumber)}`);
   }
 
   return <form className="checkout-layout" onSubmit={handleSubmit}>

@@ -16,6 +16,8 @@ GearLab is a monochrome, premium gaming gear and tech accessories store for cust
 - Authenticated product Create, Read, Update, and Delete operations
 - Authenticated order list, order details, and status management
 - Serverless-compatible Upstash Redis rate limiting for admin login and guest order creation
+- Security headers configured in Next.js for browser hardening, with stricter no-referrer handling on order confirmation pages
+- Structured server-side logging with an allowlisted, non-sensitive event context
 
 ## Local development
 
@@ -64,11 +66,15 @@ Never commit `.env`, `.env.local`, credentials, tokens, or database connection s
 
 Public checkout sends only product IDs, quantities, and customer form data. The server validates the request, re-fetches products and prices from PostgreSQL, calculates totals, rejects unavailable products, and creates the order atomically in a Prisma transaction.
 
-Order confirmation requires both the order number and a separate cryptographically random public access token. An order number alone does not reveal order details. The token is never selected for administrator lists or detail pages.
+Order confirmation requires both the order number and a separate cryptographically random public access token. New checkout requests set the token in a scoped HttpOnly cookie on the server before redirecting to a clean `/order/[orderNumber]` path. Legacy `?token=` links are accepted only through a client-side exchange bridge and are removed from the URL before confirmation data is loaded. An order number alone does not reveal order details. The token is never selected for administrator lists or detail pages.
 
 Admin pages and Server Actions call `requireAdmin()`. That function verifies the Auth.js session, re-fetches the administrator from PostgreSQL, and requires the account to still be active. Passwords are stored only as bcrypt hashes.
 
 Products and orders are accessed through server-side service modules. Customer information is available only from authenticated administrator routes.
+
+The project intentionally keeps Auth.js at the existing beta version and Prisma at the existing 6.19.3 version for compatibility. The previously audited `deepmerge-ts` advisory is transitive Prisma CLI/configuration tooling, not a public runtime code path; it remains documented as an accepted temporary dependency risk until a compatible Prisma fix is available.
+
+The structured logger only accepts safe operational fields such as event code, route label, status code, and retryability. It must not receive passwords, tokens, customer contact details, addresses, database errors, or environment values.
 
 ## Useful scripts
 
