@@ -8,18 +8,24 @@ datasource db {
 }
 
 model Product {
-  id          String             @id @default(cuid())
-  slug        String             @unique
-  name        String
-  description String
-  category    String
-  priceTHB    Int
-  imageUrl    String?
-  stockStatus ProductStockStatus @default(PREORDER)
-  featured    Boolean            @default(false)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  orderItems  OrderItem[]
+  id              String             @id @default(cuid())
+  slug            String             @unique
+  name            String
+  description     String
+  category        String
+  brand           String?
+  sku             String?            @unique
+  priceTHB        Int
+  imageUrl        String?
+  imageAlt        String?
+  imageStorageKey String?
+  stockStatus     ProductStockStatus @default(PREORDER)
+  featured        Boolean            @default(false)
+  active          Boolean            @default(true)
+  archivedAt      DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  orderItems      OrderItem[]
 
   @@index([category])
   @@index([featured])

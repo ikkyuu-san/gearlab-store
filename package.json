@@ -14,12 +14,14 @@
     "db:seed:admin": "tsx prisma/seed-admin.ts",
     "db:verify": "tsx prisma/verify.ts",
     "db:test:crud": "tsx prisma/test-crud.ts",
+    "db:test:product-images": "tsx prisma/test-product-images.ts",
     "db:test:security": "tsx prisma/test-security.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "@upstash/ratelimit": "^2.1.0",
     "@upstash/redis": "^1.38.4",
+    "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.3",
     "next": "16.3.5",
     "next-auth": "^5.0.0-beta.32",

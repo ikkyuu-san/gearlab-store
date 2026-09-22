@@ -1,16 +1,11 @@
 import type { Product } from "./product-types";
+import { PRODUCT_CATEGORIES } from "./categories";
 
 export type { Product } from "./product-types";
+export const categories = PRODUCT_CATEGORIES;
+export type CategoryId = (typeof categories)[number]["id"];
 
 // Display-only examples used by the seed script. The frontend reads the database.
-export const categories = [
-  { id: "keyboards", name: "Gaming Keyboards", caption: "Every keystroke counts.", image: "/images/demo-keyboard.png" },
-  { id: "mice", name: "Gaming Mice", caption: "Precision in your hands.", image: "/images/demo-mouse.png" },
-  { id: "audio", name: "Audio", caption: "Hear every detail.", image: "/images/demo-audio.png" },
-  { id: "desk", name: "Desk Accessories", caption: "Make the space yours.", image: null },
-] as const;
-
-export type CategoryId = (typeof categories)[number]["id"];
 
 export const mockProducts: Product[] = [
   {
@@ -35,7 +30,7 @@ export const mockProducts: Product[] = [
     details: ["Over-ear design", "Padded earcups", "Boom microphone"],
   },
   {
-    id: "desk-mat", category: "desk", categoryLabel: "Desk accessories",
+    id: "desk-mat", category: "desk-accessories", categoryLabel: "Desk Accessories",
     name: "Extended Desk Mat", price: 690, status: "In Stock",
     image: null, imageAlt: "Desk mat photo coming soon",
     description: "A simple foundation for your everyday space. Soft charcoal fabric with neatly stitched edges.",

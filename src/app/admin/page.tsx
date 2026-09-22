@@ -14,7 +14,7 @@ export default async function AdminPage() {
       <div className="admin-page-heading"><div><p className="eyebrow">GearLab / Admin</p><h1>Dashboard</h1><p>Keep the catalog focused, current, and ready for customers.</p></div><Link className="button button-primary" href="/admin/products/new">Add product</Link></div>
       <section className="admin-stat-grid" aria-label="Product overview">
         <div className="admin-stat"><span>Total products</span><strong>{overview.total}</strong></div>
-        <div className="admin-stat"><span>Active products</span><strong>{overview.active}</strong><small>Not marked out of stock</small></div>
+        <div className="admin-stat"><span>Active products</span><strong>{overview.active}</strong><small>Visible in the storefront</small></div>
         <div className="admin-stat"><span>Out of stock</span><strong>{overview.outOfStock}</strong></div>
       </section>
       <section className="admin-order-overview" aria-label="Order overview">

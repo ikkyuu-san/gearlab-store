@@ -1,13 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com", pathname: "/products/**" },
+    ],
+  },
+  experimental: {
+    serverActions: { bodySizeLimit: "4.25mb" },
+  },
   async headers() {
     const isProduction = process.env.NODE_ENV === "production";
     const contentSecurityPolicy = [
       "default-src 'self'",
       `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
+      // HTTPS image sources preserve rendering for legacy external imageUrl records; new admin uploads are managed Blob assets.
+      "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "connect-src 'self'",
       "object-src 'none'",

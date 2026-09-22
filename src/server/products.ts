@@ -3,19 +3,17 @@ import { prisma } from "@/lib/prisma";
 import type { Product } from "@/features/products/product-types";
 import { ProductServiceError } from "./product-errors";
 import { parseProductCreateInput, parseProductUpdateInput, type ProductCreateInput } from "./product-validation";
+import { getProductCategoryLabel, normalizeProductCategory } from "@/features/products/categories";
 
 function categoryLabel(category: string) {
-  return category === "keyboards" ? "Gaming keyboards"
-    : category === "mice" ? "Gaming mice"
-      : category === "desk" ? "Desk accessories"
-        : category.charAt(0).toUpperCase() + category.slice(1);
+  return getProductCategoryLabel(category);
 }
 
 const detailsByCategory: Record<string, string[]> = {
   keyboards: ["Compact layout", "Graphite finish", "Mechanical keys"],
   mice: ["Wireless design", "Sculpted shape", "Matte black finish"],
   audio: ["Over-ear design", "Padded earcups", "Boom microphone"],
-  desk: ["Extended format", "Fabric surface", "Stitched edges"],
+  "desk-accessories": ["Extended format", "Fabric surface", "Stitched edges"],
 };
 
 function toProduct(product: {
@@ -25,19 +23,20 @@ function toProduct(product: {
   priceTHB: number;
   stockStatus: "PREORDER" | "IN_STOCK" | "OUT_OF_STOCK";
   imageUrl: string | null;
+  imageAlt: string | null;
   description: string;
 }) : Product {
   return {
     id: product.id,
-    category: product.category,
+    category: normalizeProductCategory(product.category),
     categoryLabel: categoryLabel(product.category),
     name: product.name,
     price: product.priceTHB,
     status: product.stockStatus === "IN_STOCK" ? "In Stock" : product.stockStatus === "OUT_OF_STOCK" ? "Out of Stock" : "Preorder",
     image: product.imageUrl,
-    imageAlt: `${product.name} product image`,
+    imageAlt: product.imageAlt?.trim() || `${product.name} product image`,
     description: product.description,
-    details: detailsByCategory[product.category] ?? [],
+    details: detailsByCategory[normalizeProductCategory(product.category)] ?? [],
   };
 }
 
@@ -45,7 +44,12 @@ function toServiceError(error: unknown): ProductServiceError {
   if (error instanceof ProductServiceError) return error;
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    if (error.code === "P2002") return new ProductServiceError("DUPLICATE_SLUG", "A product with this slug already exists.", 409);
+    if (error.code === "P2002") {
+      const target = error.meta?.target;
+      const targetName = Array.isArray(target) ? target.join(" ") : String(target ?? "");
+      if (targetName.toLowerCase().includes("sku")) return new ProductServiceError("DUPLICATE_SKU", "A product with this SKU already exists.", 409);
+      return new ProductServiceError("DUPLICATE_SLUG", "A product with this slug already exists.", 409);
+    }
     if (error.code === "P2025") return new ProductServiceError("PRODUCT_NOT_FOUND", "Product not found.", 404);
     if (error.code === "P2003") return new ProductServiceError("PRODUCT_HAS_ORDER_HISTORY", "This product cannot be deleted because it is referenced by order history.", 409);
   }
@@ -62,7 +66,7 @@ function toCreateData(input: ProductCreateInput) {
 
 export async function listProducts(options?: { featuredOnly?: boolean }) {
   const products = await prisma.product.findMany({
-    where: options?.featuredOnly ? { featured: true } : undefined,
+    where: { active: true, ...(options?.featuredOnly ? { featured: true } : {}) },
     orderBy: { createdAt: "desc" },
   });
   return products.map(toProduct);
@@ -79,19 +83,20 @@ export async function getAdminProductById(id: string) {
 export async function getProductOverview() {
   const [total, outOfStock] = await Promise.all([
     prisma.product.count(),
-    prisma.product.count({ where: { stockStatus: "OUT_OF_STOCK" } }),
+    prisma.product.count({ where: { active: true, stockStatus: "OUT_OF_STOCK" } }),
   ]);
 
-  return { total, active: total - outOfStock, outOfStock };
+  const active = await prisma.product.count({ where: { active: true } });
+  return { total, active, outOfStock };
 }
 
 export async function getProductBySlug(slug: string) {
-  const product = await prisma.product.findUnique({ where: { slug } });
+  const product = await prisma.product.findFirst({ where: { slug, active: true } });
   return product ? toProduct(product) : null;
 }
 
 export async function getProductById(id: string) {
-  const product = await prisma.product.findUnique({ where: { id } });
+  const product = await prisma.product.findFirst({ where: { id, active: true } });
   return product ? toProduct(product) : null;
 }
 
@@ -146,6 +151,30 @@ export async function deleteProduct(id: string) {
 
       await transaction.product.delete({ where: { id } });
       return { id, deleted: true };
+    });
+  } catch (error) {
+    throw toServiceError(error);
+  }
+}
+
+export async function archiveProduct(id: string) {
+  try {
+    return await prisma.product.update({
+      where: { id },
+      data: { active: false, archivedAt: new Date() },
+      select: { id: true, active: true, archivedAt: true },
+    });
+  } catch (error) {
+    throw toServiceError(error);
+  }
+}
+
+export async function unarchiveProduct(id: string) {
+  try {
+    return await prisma.product.update({
+      where: { id },
+      data: { active: true, archivedAt: null },
+      select: { id: true, active: true, archivedAt: true },
     });
   } catch (error) {
     throw toServiceError(error);

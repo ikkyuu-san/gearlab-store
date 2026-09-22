@@ -57,13 +57,13 @@ export async function createGuestOrder(input: unknown) {
         }
 
         const productIds = parsed.data.items.map((item) => item.productId);
-        const products = await transaction.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true, priceTHB: true, stockStatus: true } });
+        const products = await transaction.product.findMany({ where: { id: { in: productIds }, active: true }, select: { id: true, name: true, priceTHB: true, stockStatus: true, active: true } });
         const byId = new Map(products.map((product) => [product.id, product]));
-        if (products.length !== productIds.length) throw new OrderServiceError("PRODUCT_NOT_FOUND", "One or more products are no longer available.", 400);
+        if (products.length !== productIds.length) throw new OrderServiceError("PRODUCT_UNAVAILABLE", "One or more products are no longer available.", 409);
 
         const lineItems = parsed.data.items.map((item) => {
           const product = byId.get(item.productId);
-          if (!product) throw new OrderServiceError("PRODUCT_NOT_FOUND", "One or more products are no longer available.", 400);
+          if (!product || !product.active) throw new OrderServiceError("PRODUCT_UNAVAILABLE", "One or more products are no longer available.", 409);
           if (product.stockStatus === "OUT_OF_STOCK") throw new OrderServiceError("PRODUCT_UNAVAILABLE", `${product.name} is currently out of stock.`, 409);
           return { productId: product.id, productNameSnapshot: product.name, priceSnapshot: product.priceTHB, quantity: item.quantity, lineTotal: product.priceTHB * item.quantity };
         });

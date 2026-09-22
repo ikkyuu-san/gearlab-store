@@ -372,8 +372,14 @@ h3 { font-weight: 500; line-height: 1.4; }
 .admin-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
 .admin-product-form label { display: flex; flex-direction: column; gap: var(--space-2); color: var(--text-secondary); font-size: 12px; }
 .admin-product-form input, .admin-product-form select, .admin-product-form textarea { width: 100%; min-height: 48px; padding: 11px var(--space-4); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--background-secondary); color: var(--foreground); }
-.admin-product-form textarea { min-height: 140px; resize: vertical; }
-.admin-product-form input:focus, .admin-product-form select:focus, .admin-product-form textarea:focus { border-color: var(--foreground); outline: none; }
+  .admin-product-form textarea { min-height: 140px; resize: vertical; }
+  .admin-product-form input:focus, .admin-product-form select:focus, .admin-product-form textarea:focus { border-color: var(--foreground); outline: none; }
+  .admin-form-hint { margin: calc(var(--space-4) * -1) 0 0; color: var(--text-muted); font-size: 12px; }
+  .admin-current-image { display: grid; gap: var(--space-3); }
+  .admin-image-label { color: var(--text-secondary); font-size: 12px; }
+  .admin-current-image-preview { display: grid; width: min(100%, 240px); aspect-ratio: 1; overflow: hidden; place-items: center; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--background-secondary); }
+  .admin-current-image-preview img { width: 100%; height: 100%; object-fit: contain; }
+  .admin-image-remove-form { display: flex; justify-content: flex-end; margin-top: var(--space-3); }
 .admin-checkbox { flex-direction: row !important; align-items: center; }
 .admin-checkbox input { width: 18px; min-height: 18px; accent-color: var(--accent); }
 .admin-form-actions { display: flex; justify-content: flex-end; padding-top: var(--space-2); }

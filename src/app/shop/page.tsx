@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Header } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
 import { ProductCatalog, ProductCatalogError } from "@/features/products/product-catalog";
-import { categories } from "@/features/products/mock-products";
+import { getProductCategoryId } from "@/features/products/categories";
 import { listProducts } from "@/server/products";
 import type { Product } from "@/features/products/product-types";
 
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default async function Shop({ searchParams }: PageProps<"/shop">) {
   const params = await searchParams;
-  const category = categories.find((item) => item.id === params.category)?.id ?? "all";
+  const category = getProductCategoryId(typeof params.category === "string" ? params.category : undefined) ?? "all";
   const query = typeof params.q === "string" ? params.q : "";
   let products: Product[] = [];
   let catalogError = false;
