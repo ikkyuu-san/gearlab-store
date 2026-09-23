@@ -12,6 +12,7 @@ export type GuestCheckoutPayload = {
   phone: string;
   email: string;
   deliveryAddress: string;
+  deliveryMethod: "STANDARD";
   note: string;
   items: Array<{ productId: string; quantity: number }>;
 };

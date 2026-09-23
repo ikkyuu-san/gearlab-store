@@ -31,6 +31,7 @@ export function CheckoutForm() {
       phone: String(formData.get("phone") ?? ""),
       email: String(formData.get("email") ?? ""),
       deliveryAddress: String(formData.get("deliveryAddress") ?? ""),
+      deliveryMethod: "STANDARD",
       note: String(formData.get("note") ?? ""),
       items: items.map((item) => ({ productId: item.id, quantity: item.quantity })),
     });
@@ -50,11 +51,16 @@ export function CheckoutForm() {
       <label>Phone number<input name="phone" required pattern="[0-9+()\-\s]{5,30}" maxLength={30} autoComplete="tel" /></label>
       <label>Email <span>(optional)</span><input name="email" type="email" maxLength={254} autoComplete="email" /></label>
       <label>Delivery address<textarea name="deliveryAddress" required minLength={5} maxLength={1000} rows={4} autoComplete="street-address" /></label>
+      <section className="checkout-delivery" aria-labelledby="delivery-heading">
+        <p className="eyebrow">Delivery method</p>
+        <h3 id="delivery-heading">Standard Delivery</h3>
+        <p>We’ll confirm delivery timing and any delivery charge with you after receiving your order. No payment is collected now.</p>
+      </section>
       <label>Order note <span>(optional)</span><textarea name="note" maxLength={2000} rows={3} placeholder="Anything we should know?" /></label>
       {error ? <p className="admin-error checkout-error" role="alert">{error}</p> : null}
-      <button className="button button-primary checkout-submit" type="submit" disabled={pending}>{pending ? "Creating order…" : "Place preorder"} {!pending && <Icon name="arrow" />}</button>
-      <p className="checkout-security-note">No payment is collected yet. Your order request will be confirmed separately.</p>
+      <button className="button button-primary checkout-submit" type="submit" disabled={pending}>{pending ? "Creating order…" : "Place order"} {!pending && <Icon name="arrow" />}</button>
+      <p className="checkout-security-note">No payment is collected at checkout. Delivery timing and any delivery charge will be confirmed by GearLab.</p>
     </div>
-    <aside className="cart-summary checkout-summary"><p className="eyebrow">Order preview</p><h2>Your selection</h2><div className="checkout-items">{items.map((item) => <div className="checkout-item" key={item.id}><span>{item.name} <small>× {item.quantity}</small></span><strong>{formatCartPrice(item.price * item.quantity)}</strong></div>)}</div><div className="cart-summary-row"><span>Subtotal</span><strong>{formatCartPrice(subtotal)}</strong></div><p className="cart-summary-note">Final prices are verified against the GearLab database when you submit.</p></aside>
+    <aside className="cart-summary checkout-summary"><p className="eyebrow">Order preview</p><h2>Your selection</h2><div className="checkout-items">{items.map((item) => <div className="checkout-item" key={item.id}><span>{item.name} <small>× {item.quantity}</small></span><strong>{formatCartPrice(item.price * item.quantity)}</strong></div>)}</div><div className="cart-summary-row"><span>Product subtotal</span><strong>{formatCartPrice(subtotal)}</strong></div><div className="cart-summary-row checkout-total-row"><span>Order total before delivery</span><strong>{formatCartPrice(subtotal)}</strong></div><p className="cart-summary-note">Preview only: GearLab rechecks prices and availability using current database values. Standard delivery charges, if any, are confirmed separately.</p></aside>
   </form>;
 }

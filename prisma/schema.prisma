@@ -61,6 +61,7 @@ model Order {
   note              String?
   orderNumber       String         @unique
   subtotal          Int
+  deliveryMethod   DeliveryMethod  @default(STANDARD)
   publicAccessToken String?        @unique
   items             OrderItem[]
 
@@ -103,4 +104,8 @@ enum ContactMethod {
   FACEBOOK
   VIBER
   TELEGRAM
+}
+
+enum DeliveryMethod {
+  STANDARD
 }

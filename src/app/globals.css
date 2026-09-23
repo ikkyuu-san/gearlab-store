@@ -279,6 +279,9 @@ h3 { font-weight: 500; line-height: 1.4; }
 .checkout-section-heading { margin-bottom: var(--space-3); }
 .checkout-section-heading h2 { margin-top: var(--space-2); font-size: 24px; }
 .checkout-section-heading p:not(.eyebrow) { margin-top: var(--space-3); color: var(--text-secondary); font-size: 13px; }
+.checkout-delivery { padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--background-secondary); }
+.checkout-delivery h3 { margin-top: var(--space-2); font-size: 16px; font-weight: 500; }
+.checkout-delivery p:not(.eyebrow) { margin-top: var(--space-2); color: var(--text-secondary); font-size: 12px; line-height: 1.65; }
 .checkout-fields label { display: flex; flex-direction: column; gap: var(--space-2); color: var(--text-secondary); font-size: 12px; }
 .checkout-fields label span { color: var(--text-muted); }
 .checkout-fields input, .checkout-fields textarea { width: 100%; min-height: 50px; padding: 12px var(--space-4); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--card); color: var(--foreground); }
@@ -304,6 +307,12 @@ h3 { font-weight: 500; line-height: 1.4; }
 .confirmation-items { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-8); padding-bottom: var(--space-5); border-bottom: 1px solid var(--border); }
 .confirmation-card .cart-summary-row { margin-top: 0; border-top: 0; }
 .confirmation-status { margin-top: var(--space-5); color: var(--text-secondary); font-size: 12px; }
+.confirmation-delivery { display: grid; gap: var(--space-4); margin-top: var(--space-6); padding: var(--space-5); border: 1px solid var(--border); background: var(--background-secondary); }
+.confirmation-delivery div { display: grid; gap: var(--space-2); }
+.confirmation-delivery dt { color: var(--text-muted); font-size: 11px; }
+.confirmation-delivery dd { color: var(--foreground); font-size: 13px; overflow-wrap: anywhere; }
+.confirmation-next { margin-top: var(--space-4); color: var(--text-secondary); font-size: 12px; line-height: 1.65; }
+.checkout-total-row { font-weight: 600; }
 .confirmation-card .button { margin-top: var(--space-8); }
 
 .admin-shell { min-height: 100dvh; display: grid; place-items: center; padding: var(--space-6); background: var(--background); }

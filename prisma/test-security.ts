@@ -14,6 +14,7 @@ async function main() {
     phone: "+95000000000",
     email: "",
     deliveryAddress: "Temporary verification address",
+    deliveryMethod: "STANDARD",
     note: "Temporary verification order",
     items: [{ productId: product.id, quantity: 1 }],
   });
@@ -24,7 +25,20 @@ async function main() {
     const incorrectTokenHidden = !(await getOrderByNumberAndToken(result.orderNumber, "x".repeat(43)));
     const snapshot = await prisma.orderItem.findFirst({ where: { order: { orderNumber: result.orderNumber } }, select: { priceSnapshot: true } });
     const serverPriceSnapshotCorrect = snapshot?.priceSnapshot === product.priceTHB;
-    console.log(JSON.stringify({ correctTokenWorks, missingTokenHidden, incorrectTokenHidden, serverPriceSnapshotCorrect }));
+    const orderSummary = await prisma.order.findUnique({ where: { orderNumber: result.orderNumber }, select: { totalTHB: true, subtotal: true, deliveryMethod: true } });
+    const deliverySummaryCorrect = orderSummary?.deliveryMethod === "STANDARD" && orderSummary.totalTHB === orderSummary.subtotal;
+    const historicalOrder = await prisma.order.findFirst({
+      where: { orderNumber: { not: result.orderNumber }, publicAccessToken: { not: null }, items: { some: {} } },
+      select: { orderNumber: true, publicAccessToken: true },
+      orderBy: { createdAt: "asc" },
+    });
+    const historicalOrderStillAccessible = historicalOrder?.publicAccessToken
+      ? Boolean(await getOrderByNumberAndToken(historicalOrder.orderNumber, historicalOrder.publicAccessToken))
+      : null;
+    console.log(JSON.stringify({ correctTokenWorks, missingTokenHidden, incorrectTokenHidden, serverPriceSnapshotCorrect, deliverySummaryCorrect, historicalOrderStillAccessible }));
+    if (!correctTokenWorks || !missingTokenHidden || !incorrectTokenHidden || !serverPriceSnapshotCorrect || !deliverySummaryCorrect || historicalOrderStillAccessible === false) {
+      throw new Error("Secure order verification assertions failed.");
+    }
   } finally {
     await prisma.order.delete({ where: { orderNumber: result.orderNumber } });
   }
