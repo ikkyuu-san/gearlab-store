@@ -11,4 +11,7 @@ export type Product = {
   imageAlt: string;
   description: string;
   details: string[];
+  availabilityMessage?: string;
+  availableQuantity?: number | null;
+  preorderEta?: string | null;
 };

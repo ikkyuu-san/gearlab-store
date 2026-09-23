@@ -10,6 +10,10 @@ import { ProductImageError, removeProductImage, replaceProductImage, validatePro
 export type ProductActionState = { error?: string; productId?: string };
 
 function inputFromForm(formData: FormData) {
+  const optionalQuantity = (name: string) => {
+    const value = String(formData.get(name) ?? "").trim();
+    return value ? Number(value) : null;
+  };
   return {
     name: String(formData.get("name") ?? ""),
     slug: String(formData.get("slug") ?? ""),
@@ -20,6 +24,9 @@ function inputFromForm(formData: FormData) {
     priceTHB: Number(formData.get("priceTHB") ?? 0),
     imageAlt: String(formData.get("imageAlt") ?? ""),
     stockStatus: String(formData.get("stockStatus") ?? "PREORDER"),
+    stockQuantity: optionalQuantity("stockQuantity"),
+    preorderLimit: optionalQuantity("preorderLimit"),
+    preorderEta: String(formData.get("preorderEta") ?? ""),
     featured: formData.get("featured") === "on",
   };
 }

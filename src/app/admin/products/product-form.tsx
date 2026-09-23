@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { Product } from "@prisma/client";
 import { removeProductImageAction, type ProductActionState } from "./actions";
 import { PRODUCT_CATEGORIES, normalizeProductCategory } from "@/features/products/categories";
@@ -10,6 +10,7 @@ type ProductFormAction = (state: ProductActionState, formData: FormData) => Prom
 
 export function ProductForm({ product, action, submitLabel }: { product?: Product; action: ProductFormAction; submitLabel: string }) {
   const [state, formAction, pending] = useActionState(action, {});
+  const [stockStatus, setStockStatus] = useState(product?.stockStatus ?? "PREORDER");
   return (
     <>
       <form className="admin-product-form" action={formAction}>
@@ -20,7 +21,13 @@ export function ProductForm({ product, action, submitLabel }: { product?: Produc
           <label>Brand<input name="brand" maxLength={120} defaultValue={product?.brand ?? ""} /></label>
           <label>SKU<input name="sku" maxLength={80} defaultValue={product?.sku ?? ""} autoCapitalize="characters" /></label>
           <label>Price (THB)<input name="priceTHB" type="number" min="0" max="100000000" step="1" required defaultValue={product?.priceTHB ?? 0} /></label>
-          <label>Stock status<select name="stockStatus" defaultValue={product?.stockStatus ?? "PREORDER"}><option value="PREORDER">Preorder</option><option value="IN_STOCK">In stock</option><option value="OUT_OF_STOCK">Out of stock</option></select></label>
+          <label>Stock status<select name="stockStatus" value={stockStatus} onChange={(event) => setStockStatus(event.target.value as typeof stockStatus)}><option value="PREORDER">Preorder</option><option value="IN_STOCK">In stock</option><option value="OUT_OF_STOCK">Out of stock</option></select></label>
+          {stockStatus === "IN_STOCK" ? <label>Stock quantity<input name="stockQuantity" type="number" min="0" max="1000000" step="1" required defaultValue={product?.stockQuantity ?? ""} /><small>Total units available for this product, including existing non-cancelled orders.</small></label> : null}
+          {stockStatus === "PREORDER" ? <>
+            <label>Preorder limit (optional)<input name="preorderLimit" type="number" min="1" max="1000000" step="1" defaultValue={product?.preorderLimit ?? ""} /><small>Leave blank for an uncapped preorder.</small></label>
+            <label>Estimated arrival (optional)<input name="preorderEta" type="date" defaultValue={product?.preorderEta?.toISOString().slice(0, 10) ?? ""} /></label>
+          </> : null}
+          {stockStatus === "OUT_OF_STOCK" ? <p className="admin-form-hint inventory-hint">Out-of-stock products cannot be purchased. Any previous stock or preorder limits will be cleared.</p> : null}
           <label>Product image<input name="image" type="file" accept="image/jpeg,image/png,image/webp" /></label>
           <label>Image alt text<input name="imageAlt" maxLength={300} defaultValue={product?.imageAlt ?? ""} /></label>
         </div>

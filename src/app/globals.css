@@ -148,6 +148,8 @@ h3 { font-weight: 500; line-height: 1.4; }
 .product-info .eyebrow { font-size: 9px; letter-spacing: .1em; }
 .product-info h3 { font-size: 14px; margin-top: var(--space-2); min-height: 40px; }
 .product-price { font-size: 14px; font-weight: 600; margin-top: var(--space-3); }
+.product-availability { margin-top: var(--space-2); min-height: 20px; color: var(--text-secondary); font-size: 11px; }
+.product-detail-availability { margin-bottom: var(--space-4); }
 .product-action { width: 100%; margin-top: var(--space-5); padding: var(--space-3) 0 0; min-height: 44px; display: flex; align-items: center; justify-content: space-between; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; font-size: 11px; color: var(--text-secondary); }
 .product-action:hover { color: var(--foreground); }
 .product-action svg { width: 16px; height: 16px; }

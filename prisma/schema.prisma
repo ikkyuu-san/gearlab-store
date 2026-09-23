@@ -20,6 +20,9 @@ model Product {
   imageAlt        String?
   imageStorageKey String?
   stockStatus     ProductStockStatus @default(PREORDER)
+  stockQuantity   Int?
+  preorderLimit   Int?
+  preorderEta     DateTime?          @db.Date
   featured        Boolean            @default(false)
   active          Boolean            @default(true)
   archivedAt      DateTime?

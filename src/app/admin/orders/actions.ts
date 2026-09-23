@@ -18,5 +18,7 @@ export async function updateOrderStatusAction(id: string, _state: OrderActionSta
   revalidatePath("/admin");
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${id}`);
+  revalidatePath("/");
+  revalidatePath("/shop");
   redirect(`/admin/orders/${id}?status=updated`);
 }

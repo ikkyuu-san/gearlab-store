@@ -25,19 +25,47 @@ function toProduct(product: {
   imageUrl: string | null;
   imageAlt: string | null;
   description: string;
-}) : Product {
+  stockQuantity: number | null;
+  preorderLimit: number | null;
+  preorderEta: Date | null;
+}, committedQuantity = 0) : Product {
+  const availableQuantity = product.stockStatus === "IN_STOCK" && product.stockQuantity !== null
+    ? Math.max(0, product.stockQuantity - committedQuantity)
+    : product.stockStatus === "PREORDER" && product.preorderLimit !== null
+      ? Math.max(0, product.preorderLimit - committedQuantity)
+      : null;
+  const eta = product.preorderEta?.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+  const availabilityMessage = product.stockStatus === "OUT_OF_STOCK"
+    ? "Out of Stock"
+    : product.stockStatus === "IN_STOCK"
+      ? availableQuantity === null ? "In Stock" : availableQuantity === 0 ? "Out of Stock" : availableQuantity <= 3 ? `Only ${availableQuantity} left` : "In Stock"
+      : `Preorder${availableQuantity === 0 ? " · Limit reached" : availableQuantity !== null ? ` · ${availableQuantity} available` : ""}${eta ? ` · Est. ${eta}` : ""}`;
+
   return {
     id: product.id,
     category: normalizeProductCategory(product.category),
     categoryLabel: categoryLabel(product.category),
     name: product.name,
     price: product.priceTHB,
-    status: product.stockStatus === "IN_STOCK" ? "In Stock" : product.stockStatus === "OUT_OF_STOCK" ? "Out of Stock" : "Preorder",
+    status: product.stockStatus === "OUT_OF_STOCK" || (product.stockStatus === "IN_STOCK" && availableQuantity === 0) ? "Out of Stock" : product.stockStatus === "IN_STOCK" ? "In Stock" : "Preorder",
     image: product.imageUrl,
     imageAlt: product.imageAlt?.trim() || `${product.name} product image`,
     description: product.description,
     details: detailsByCategory[normalizeProductCategory(product.category)] ?? [],
+    availabilityMessage,
+    availableQuantity,
+    preorderEta: product.preorderEta?.toISOString().slice(0, 10) ?? null,
   };
+}
+
+async function committedQuantities(productIds: string[]) {
+  if (productIds.length === 0) return new Map<string, number>();
+  const totals = await prisma.orderItem.groupBy({
+    by: ["productId"],
+    where: { productId: { in: productIds }, order: { status: { not: "CANCELLED" } } },
+    _sum: { quantity: true },
+  });
+  return new Map(totals.map((total) => [total.productId, total._sum.quantity ?? 0]));
 }
 
 function toServiceError(error: unknown): ProductServiceError {
@@ -61,6 +89,9 @@ function toCreateData(input: ProductCreateInput) {
   return {
     ...input,
     stockStatus: input.stockStatus as ProductStockStatus,
+    stockQuantity: input.stockStatus === "IN_STOCK" ? input.stockQuantity : null,
+    preorderLimit: input.stockStatus === "PREORDER" ? input.preorderLimit : null,
+    preorderEta: input.stockStatus === "PREORDER" ? input.preorderEta : null,
   };
 }
 
@@ -69,7 +100,8 @@ export async function listProducts(options?: { featuredOnly?: boolean }) {
     where: { active: true, ...(options?.featuredOnly ? { featured: true } : {}) },
     orderBy: { createdAt: "desc" },
   });
-  return products.map(toProduct);
+  const committed = await committedQuantities(products.map((product) => product.id));
+  return products.map((product) => toProduct(product, committed.get(product.id) ?? 0));
 }
 
 export async function listAdminProducts() {
@@ -92,12 +124,16 @@ export async function getProductOverview() {
 
 export async function getProductBySlug(slug: string) {
   const product = await prisma.product.findFirst({ where: { slug, active: true } });
-  return product ? toProduct(product) : null;
+  if (!product) return null;
+  const committed = await committedQuantities([product.id]);
+  return toProduct(product, committed.get(product.id) ?? 0);
 }
 
 export async function getProductById(id: string) {
   const product = await prisma.product.findFirst({ where: { id, active: true } });
-  return product ? toProduct(product) : null;
+  if (!product) return null;
+  const committed = await committedQuantities([product.id]);
+  return toProduct(product, committed.get(product.id) ?? 0);
 }
 
 export async function createProduct(input: unknown) {
@@ -129,6 +165,9 @@ export async function updateProduct(id: string, input: unknown) {
       data: {
         ...data,
         stockStatus: data.stockStatus as ProductStockStatus | undefined,
+        ...(data.stockStatus === "IN_STOCK" ? { preorderLimit: null, preorderEta: null } : {}),
+        ...(data.stockStatus === "PREORDER" ? { stockQuantity: null } : {}),
+        ...(data.stockStatus === "OUT_OF_STOCK" ? { stockQuantity: null, preorderLimit: null, preorderEta: null } : {}),
       },
     }));
   } catch (error) {

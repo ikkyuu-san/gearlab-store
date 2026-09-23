@@ -8,7 +8,8 @@ import { useCart } from "./cart-provider";
 export function AddToCartButton({ product, compact = false }: { product: Product; compact?: boolean }) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
-  const unavailable = product.status === "Out of Stock";
+  const unavailable = product.status === "Out of Stock" || product.availableQuantity === 0;
+  const unavailableLabel = product.status === "Preorder" && product.availableQuantity === 0 ? "Preorder full" : "Out of stock";
 
   useEffect(() => {
     if (!added) return;
@@ -20,5 +21,5 @@ export function AddToCartButton({ product, compact = false }: { product: Product
     if (addItem(product)) setAdded(true);
   }
 
-  return <button type="button" className={compact ? "product-action cart-add-action" : "button button-primary cart-add-button"} onClick={handleAdd} disabled={unavailable} aria-label={unavailable ? `${product.name} is out of stock` : `Add ${product.name} to cart`}><span>{unavailable ? "Out of stock" : added ? "Added to cart" : "Add to cart"}</span>{!unavailable && <Icon name={added ? "check" : "cart"} />}</button>;
+  return <button type="button" className={compact ? "product-action cart-add-action" : "button button-primary cart-add-button"} onClick={handleAdd} disabled={unavailable} aria-label={unavailable ? `${product.name}: ${unavailableLabel}` : `Add ${product.name} to cart`}><span>{unavailable ? unavailableLabel : added ? "Added to cart" : "Add to cart"}</span>{!unavailable && <Icon name={added ? "check" : "cart"} />}</button>;
 }

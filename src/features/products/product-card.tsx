@@ -16,6 +16,7 @@ export function ProductCard({ product, onView }: { product: Product; onView: () 
         <p className="eyebrow">{product.categoryLabel}</p>
         <h3>{product.name}</h3>
         <p className="product-price">{formatPrice(product.price)}</p>
+        <p className="product-availability" aria-live="polite">{product.availabilityMessage ?? product.status}</p>
         <button type="button" className="product-action" onClick={onView} aria-label={`View Product: ${product.name}`}>View Product <Icon name="arrow" /></button>
         <AddToCartButton product={product} compact />
       </div>

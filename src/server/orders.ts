@@ -42,6 +42,39 @@ function toOrderError(error: unknown) {
   return new OrderServiceError("DATABASE_ERROR", "We could not complete the order. Please try again.", 500);
 }
 
+async function lockProductRows(transaction: Prisma.TransactionClient, productIds: string[]) {
+  const ids = [...new Set(productIds)].sort();
+  if (ids.length === 0) return;
+  await transaction.$queryRaw(Prisma.sql`SELECT "id" FROM "Product" WHERE "id" IN (${Prisma.join(ids)}) ORDER BY "id" FOR UPDATE`);
+}
+
+async function getCommittedQuantities(transaction: Prisma.TransactionClient, productIds: string[]) {
+  if (productIds.length === 0) return new Map<string, number>();
+  const totals = await transaction.orderItem.groupBy({
+    by: ["productId"],
+    where: { productId: { in: productIds }, order: { status: { not: "CANCELLED" } } },
+    _sum: { quantity: true },
+  });
+  return new Map(totals.map((total) => [total.productId, total._sum.quantity ?? 0]));
+}
+
+function assertProductCapacity(product: {
+  name: string;
+  stockStatus: "PREORDER" | "IN_STOCK" | "OUT_OF_STOCK";
+  stockQuantity: number | null;
+  preorderLimit: number | null;
+}, requested: number, committed: number) {
+  if (product.stockStatus === "OUT_OF_STOCK") {
+    throw new OrderServiceError("PRODUCT_UNAVAILABLE", `${product.name} is currently out of stock.`, 409);
+  }
+
+  const limit = product.stockStatus === "IN_STOCK" ? product.stockQuantity : product.preorderLimit;
+  if (limit !== null && committed + requested > limit) {
+    const remaining = Math.max(0, limit - committed);
+    throw new OrderServiceError("PRODUCT_UNAVAILABLE", `${product.name} has only ${remaining} available. Please update your cart.`, 409);
+  }
+}
+
 export async function createGuestOrder(input: unknown) {
   const parsed = guestOrderSchema.safeParse(input);
   if (!parsed.success) throw new OrderServiceError("INVALID_ORDER", "Please check the checkout details and try again.", 400);
@@ -57,14 +90,16 @@ export async function createGuestOrder(input: unknown) {
         }
 
         const productIds = parsed.data.items.map((item) => item.productId);
-        const products = await transaction.product.findMany({ where: { id: { in: productIds }, active: true }, select: { id: true, name: true, priceTHB: true, stockStatus: true, active: true } });
+        await lockProductRows(transaction, productIds);
+        const products = await transaction.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true, priceTHB: true, stockStatus: true, active: true, stockQuantity: true, preorderLimit: true } });
         const byId = new Map(products.map((product) => [product.id, product]));
         if (products.length !== productIds.length) throw new OrderServiceError("PRODUCT_UNAVAILABLE", "One or more products are no longer available.", 409);
+        const committed = await getCommittedQuantities(transaction, productIds);
 
         const lineItems = parsed.data.items.map((item) => {
           const product = byId.get(item.productId);
           if (!product || !product.active) throw new OrderServiceError("PRODUCT_UNAVAILABLE", "One or more products are no longer available.", 409);
-          if (product.stockStatus === "OUT_OF_STOCK") throw new OrderServiceError("PRODUCT_UNAVAILABLE", `${product.name} is currently out of stock.`, 409);
+          assertProductCapacity(product, item.quantity, committed.get(product.id) ?? 0);
           return { productId: product.id, productNameSnapshot: product.name, priceSnapshot: product.priceTHB, quantity: item.quantity, lineTotal: product.priceTHB * item.quantity };
         });
         const subtotal = lineItems.reduce((total, item) => total + item.lineTotal, 0);
@@ -185,16 +220,42 @@ export async function updateOrderStatus(id: string, input: unknown) {
   const parsed = orderStatusSchema.safeParse(input);
   if (!parsed.success) throw new OrderServiceError("INVALID_STATUS", "Choose a valid order status.", 400);
 
-  const order = await prisma.order.findUnique({ where: { id }, select: { id: true } });
-  if (!order) throw new OrderServiceError("ORDER_NOT_FOUND", "Order not found.", 404);
-
   try {
-    return await prisma.order.update({
-      where: { id },
-      data: { status: parsed.data },
-      select: { id: true, orderNumber: true, status: true },
+    return await prisma.$transaction(async (transaction) => {
+      const lockedOrder = await transaction.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT "id" FROM "Order" WHERE "id" = ${id} FOR UPDATE`);
+      if (lockedOrder.length === 0) throw new OrderServiceError("ORDER_NOT_FOUND", "Order not found.", 404);
+
+      const order = await transaction.order.findUnique({
+        where: { id },
+        select: { id: true, status: true, items: { select: { productId: true, quantity: true } } },
+      });
+      if (!order) throw new OrderServiceError("ORDER_NOT_FOUND", "Order not found.", 404);
+
+      const productIds = order.items.map((item) => item.productId);
+      await lockProductRows(transaction, productIds);
+
+      if (order.status === "CANCELLED" && parsed.data !== "CANCELLED") {
+        const products = await transaction.product.findMany({
+          where: { id: { in: productIds } },
+          select: { id: true, name: true, active: true, stockStatus: true, stockQuantity: true, preorderLimit: true },
+        });
+        const byId = new Map(products.map((product) => [product.id, product]));
+        const committed = await getCommittedQuantities(transaction, productIds);
+        for (const item of order.items) {
+          const product = byId.get(item.productId);
+          if (!product || !product.active) throw new OrderServiceError("PRODUCT_UNAVAILABLE", "This cancelled order cannot be reopened because a product is no longer available.", 409);
+          assertProductCapacity(product, item.quantity, committed.get(item.productId) ?? 0);
+        }
+      }
+
+      return transaction.order.update({
+        where: { id },
+        data: { status: parsed.data },
+        select: { id: true, orderNumber: true, status: true },
+      });
     });
   } catch (error) {
+    if (error instanceof OrderServiceError) throw error;
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
       throw new OrderServiceError("ORDER_NOT_FOUND", "Order not found.", 404);
     }

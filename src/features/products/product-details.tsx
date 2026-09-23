@@ -11,6 +11,7 @@ export function ProductDetails({ product }: { product: Product }) {
       <h2>{product.name}</h2>
       <div className="detail-price"><strong>{formatPrice(product.price)}</strong><span className="status-badge">{product.status}</span></div>
       <p>{product.description}</p>
+      <p className="product-availability product-detail-availability">{product.availabilityMessage ?? product.status}</p>
       <ul className="product-specs">{product.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>
       <AddToCartButton product={product} />
       <p className="sample-note">Demo product with illustrative imagery. Checkout will be added in the next phase.</p>

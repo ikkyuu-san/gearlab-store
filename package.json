@@ -14,6 +14,7 @@
     "db:seed:admin": "tsx prisma/seed-admin.ts",
     "db:verify": "tsx prisma/verify.ts",
     "db:test:crud": "tsx prisma/test-crud.ts",
+    "db:test:inventory": "tsx prisma/test-inventory.ts",
     "db:test:product-images": "tsx prisma/test-product-images.ts",
     "db:test:security": "tsx prisma/test-security.ts"
   },

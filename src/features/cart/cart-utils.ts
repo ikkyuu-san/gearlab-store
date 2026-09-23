@@ -13,7 +13,7 @@ export function getCartSubtotal(items: CartItem[]) {
 }
 
 export function addCartItem(items: CartItem[], product: CartProduct) {
-  if (product.status === "Out of Stock") return items;
+  if (product.status === "Out of Stock" || product.availableQuantity === 0) return items;
   const existing = items.find((item) => item.id === product.id);
   if (existing) return items.map((item) => item.id === product.id ? { ...item, quantity: Math.min(MAX_CART_QUANTITY, item.quantity + 1) } : item);
   return [...items, { id: product.id, name: product.name, price: product.price, image: product.image, imageAlt: product.imageAlt, status: product.status, categoryLabel: product.categoryLabel, quantity: 1 }];
