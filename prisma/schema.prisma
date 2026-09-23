@@ -61,7 +61,8 @@ model Order {
   note              String?
   orderNumber       String         @unique
   subtotal          Int
-  deliveryMethod   DeliveryMethod  @default(STANDARD)
+  deliveryMethod    DeliveryMethod @default(STANDARD)
+  paymentStatus     PaymentStatus  @default(UNPAID)
   publicAccessToken String?        @unique
   items             OrderItem[]
 
@@ -108,4 +109,9 @@ enum ContactMethod {
 
 enum DeliveryMethod {
   STANDARD
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
 }

@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 
-export type OrderServiceErrorCode = "INVALID_ORDER" | "INVALID_STATUS" | "ORDER_NOT_FOUND" | "PRODUCT_NOT_FOUND" | "PRODUCT_UNAVAILABLE" | "DATABASE_ERROR";
+export type OrderServiceErrorCode = "INVALID_ORDER" | "INVALID_STATUS" | "INVALID_PAYMENT_STATUS" | "ORDER_NOT_FOUND" | "PRODUCT_NOT_FOUND" | "PRODUCT_UNAVAILABLE" | "DATABASE_ERROR";
 
 export class OrderServiceError extends Error {
   constructor(public readonly code: OrderServiceErrorCode, message: string, public readonly statusCode: number) {
@@ -27,6 +27,11 @@ const guestOrderSchema = z.object({
 });
 
 const orderStatusSchema = z.enum(["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"]);
+const paymentStatusSchema = z.enum(["UNPAID", "PAID"]);
+const adminOrderFiltersSchema = z.object({
+  query: z.string().trim().max(100).catch(""),
+  status: z.enum(["ALL", "PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"]).catch("ALL"),
+});
 
 function makeOrderNumber() {
   const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
@@ -175,8 +180,20 @@ export function getOrderByNumberAndToken(orderNumber: string, publicAccessToken:
   });
 }
 
-export async function getAdminOrders() {
+export async function getAdminOrders(input: unknown = {}) {
+  const filters = adminOrderFiltersSchema.parse(input);
+  const query = filters.query;
   return prisma.order.findMany({
+    where: {
+      ...(filters.status === "ALL" ? {} : { status: filters.status }),
+      ...(query ? {
+        OR: [
+          { orderNumber: { contains: query, mode: "insensitive" } },
+          { customerName: { contains: query, mode: "insensitive" } },
+          { phone: { contains: query, mode: "insensitive" } },
+        ],
+      } : {}),
+    },
     select: {
       id: true,
       orderNumber: true,
@@ -184,7 +201,9 @@ export async function getAdminOrders() {
       phone: true,
       email: true,
       subtotal: true,
+      totalTHB: true,
       status: true,
+      paymentStatus: true,
       createdAt: true,
     },
     orderBy: { createdAt: "desc" },
@@ -204,7 +223,9 @@ export async function getAdminOrderById(id: string) {
       deliveryMethod: true,
       note: true,
       subtotal: true,
+      totalTHB: true,
       status: true,
+      paymentStatus: true,
       createdAt: true,
       updatedAt: true,
       items: {
@@ -214,10 +235,29 @@ export async function getAdminOrderById(id: string) {
           priceSnapshot: true,
           quantity: true,
           lineTotal: true,
+          product: { select: { stockStatus: true, preorderEta: true } },
         },
       },
     },
   });
+}
+
+export async function updateOrderPaymentStatus(id: string, input: unknown) {
+  const parsed = paymentStatusSchema.safeParse(input);
+  if (!parsed.success) throw new OrderServiceError("INVALID_PAYMENT_STATUS", "Choose a valid payment status.", 400);
+
+  try {
+    return await prisma.order.update({
+      where: { id },
+      data: { paymentStatus: parsed.data },
+      select: { id: true, orderNumber: true, paymentStatus: true },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      throw new OrderServiceError("ORDER_NOT_FOUND", "Order not found.", 404);
+    }
+    throw new OrderServiceError("DATABASE_ERROR", "We could not update the payment status. Please try again.", 500);
+  }
 }
 
 export async function getOrderStatistics() {
