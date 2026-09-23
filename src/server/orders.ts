@@ -161,7 +161,16 @@ export function getOrderByNumberAndToken(orderNumber: string, publicAccessToken:
       deliveryMethod: true,
       status: true,
       createdAt: true,
-      items: { select: { productNameSnapshot: true, priceSnapshot: true, quantity: true, lineTotal: true } },
+      updatedAt: true,
+      items: {
+        select: {
+          productNameSnapshot: true,
+          priceSnapshot: true,
+          quantity: true,
+          lineTotal: true,
+          product: { select: { stockStatus: true, preorderEta: true } },
+        },
+      },
     },
   });
 }

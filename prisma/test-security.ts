@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
-import { createGuestOrder, getOrderByNumberAndToken } from "../src/server/orders";
+import { createGuestOrder, getOrderByNumberAndToken, updateOrderStatus } from "../src/server/orders";
 
 const prisma = new PrismaClient();
 
@@ -25,8 +25,11 @@ async function main() {
     const incorrectTokenHidden = !(await getOrderByNumberAndToken(result.orderNumber, "x".repeat(43)));
     const snapshot = await prisma.orderItem.findFirst({ where: { order: { orderNumber: result.orderNumber } }, select: { priceSnapshot: true } });
     const serverPriceSnapshotCorrect = snapshot?.priceSnapshot === product.priceTHB;
-    const orderSummary = await prisma.order.findUnique({ where: { orderNumber: result.orderNumber }, select: { totalTHB: true, subtotal: true, deliveryMethod: true } });
+    const orderSummary = await prisma.order.findUnique({ where: { orderNumber: result.orderNumber }, select: { id: true, totalTHB: true, subtotal: true, deliveryMethod: true } });
     const deliverySummaryCorrect = orderSummary?.deliveryMethod === "STANDARD" && orderSummary.totalTHB === orderSummary.subtotal;
+    const statusUpdated = orderSummary ? await updateOrderStatus(orderSummary.id, "CONFIRMED") : null;
+    const updatedTracking = result.publicAccessToken ? await getOrderByNumberAndToken(result.orderNumber, result.publicAccessToken) : null;
+    const trackingReflectsLatestStatus = statusUpdated?.status === "CONFIRMED" && updatedTracking?.status === "CONFIRMED";
     const historicalOrder = await prisma.order.findFirst({
       where: { orderNumber: { not: result.orderNumber }, publicAccessToken: { not: null }, items: { some: {} } },
       select: { orderNumber: true, publicAccessToken: true },
@@ -35,8 +38,8 @@ async function main() {
     const historicalOrderStillAccessible = historicalOrder?.publicAccessToken
       ? Boolean(await getOrderByNumberAndToken(historicalOrder.orderNumber, historicalOrder.publicAccessToken))
       : null;
-    console.log(JSON.stringify({ correctTokenWorks, missingTokenHidden, incorrectTokenHidden, serverPriceSnapshotCorrect, deliverySummaryCorrect, historicalOrderStillAccessible }));
-    if (!correctTokenWorks || !missingTokenHidden || !incorrectTokenHidden || !serverPriceSnapshotCorrect || !deliverySummaryCorrect || historicalOrderStillAccessible === false) {
+    console.log(JSON.stringify({ correctTokenWorks, missingTokenHidden, incorrectTokenHidden, serverPriceSnapshotCorrect, deliverySummaryCorrect, trackingReflectsLatestStatus, historicalOrderStillAccessible }));
+    if (!correctTokenWorks || !missingTokenHidden || !incorrectTokenHidden || !serverPriceSnapshotCorrect || !deliverySummaryCorrect || !trackingReflectsLatestStatus || historicalOrderStillAccessible === false) {
       throw new Error("Secure order verification assertions failed.");
     }
   } finally {

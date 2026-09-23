@@ -10,7 +10,8 @@ export type OrderActionState = { error?: string };
 export async function updateOrderStatusAction(id: string, _state: OrderActionState, formData: FormData): Promise<OrderActionState> {
   await requireAdmin();
   try {
-    await updateOrderStatus(id, formData.get("status"));
+    const order = await updateOrderStatus(id, formData.get("status"));
+    revalidatePath(`/order/${encodeURIComponent(order.orderNumber)}`);
   } catch (error) {
     if (error instanceof OrderServiceError) return { error: error.message };
     return { error: "We could not update the order. Please try again." };

@@ -314,6 +314,28 @@ h3 { font-weight: 500; line-height: 1.4; }
 .confirmation-next { margin-top: var(--space-4); color: var(--text-secondary); font-size: 12px; line-height: 1.65; }
 .checkout-total-row { font-weight: 600; }
 .confirmation-card .button { margin-top: var(--space-8); }
+.tracking-card > h1 { margin-top: var(--space-3); }
+.tracking-status { margin-top: var(--space-6); padding: var(--space-5); border: 1px solid var(--border); background: var(--background-secondary); }
+.tracking-status-heading, .tracking-items-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.tracking-status-heading h2, .tracking-items-heading h2 { margin-top: var(--space-2); font-size: 20px; letter-spacing: -.03em; }
+.tracking-status > p { margin-top: var(--space-4); color: var(--text-secondary); font-size: 13px; line-height: 1.65; }
+.tracking-status > small { display: block; margin-top: var(--space-4); color: var(--text-muted); font-size: 11px; }
+.tracking-refresh { min-height: 42px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: transparent; color: var(--foreground); font-size: 12px; cursor: pointer; }
+.tracking-refresh:hover { background: var(--card); }
+.tracking-refresh:disabled { opacity: .6; cursor: wait; }
+.tracking-items { margin-top: var(--space-8); }
+.tracking-items .confirmation-items { margin-top: var(--space-4); padding-top: var(--space-5); border-top: 1px solid var(--border); }
+.tracking-item { display: flex; justify-content: space-between; gap: var(--space-5); color: var(--foreground); }
+.tracking-item-copy { display: flex; min-width: 0; flex-direction: column; gap: var(--space-2); }
+.tracking-item-copy > strong { font-size: 13px; font-weight: 500; }
+.tracking-item-copy small { color: var(--text-muted); font-size: 11px; }
+.tracking-preorder-note { color: var(--text-secondary); font-size: 11px; line-height: 1.6; }
+.tracking-item-total { flex-shrink: 0; font-size: 12px; font-weight: 500; }
+@media (max-width: 559px) {
+  .tracking-status-heading { align-items: flex-start; flex-direction: column; }
+  .tracking-refresh { width: 100%; }
+  .tracking-item { gap: var(--space-3); }
+}
 
 .admin-shell { min-height: 100dvh; display: grid; place-items: center; padding: var(--space-6); background: var(--background); }
 .admin-card { width: min(100%, 440px); padding: clamp(1.5rem, 5vw, 3rem); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background-secondary); box-shadow: var(--shadow-dialog); }
