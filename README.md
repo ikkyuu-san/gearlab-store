@@ -1,25 +1,46 @@
 # GearLab
 
-GearLab is a monochrome, premium gaming gear and tech accessories store for customers in Myanmar. Products are sourced from Thailand and currently support preorder-style checkout.
+GearLab is a production-oriented, full-stack gaming gear and tech accessories preorder e-commerce application for customers in Myanmar, with products sourced from Thailand.
 
-## Current system
+## Live Demo
 
-- Next.js App Router with TypeScript and Tailwind CSS
-- PostgreSQL / Neon database through Prisma
-- Database-backed product catalog and product detail views
-- Guest cart persisted in browser localStorage
-- Guest checkout with server-side product, price, quantity, and availability validation
-- Atomic Order and OrderItem creation with historical product name/price snapshots
-- Cryptographically protected public order confirmation links
-- Auth.js administrator authentication with bcrypt password hashing and JWT sessions
-- PostgreSQL-backed administrator revalidation on every protected page and mutation
-- Authenticated product Create, Read, Update, and Delete operations
-- Authenticated order list, order details, and status management
-- Serverless-compatible Upstash Redis rate limiting for admin login and guest order creation
-- Security headers configured in Next.js for browser hardening, with stricter no-referrer handling on order confirmation pages
-- Structured server-side logging with an allowlisted, non-sensitive event context
+**[Visit the GearLab live store](https://gearlab-store.vercel.app)**
 
-## Local development
+## Tech Stack
+
+- **Frontend:** Next.js App Router, TypeScript, Tailwind CSS
+- **Database:** PostgreSQL hosted on Neon, accessed with Prisma
+- **Authentication:** Auth.js credentials provider for administrators
+- **Rate limiting:** Upstash Redis
+- **Product media:** Vercel Blob
+- **Hosting:** Vercel
+
+## Key Features
+
+- Database-backed product catalog with product detail views, search, and category filtering
+- Admin-managed product images stored in Vercel Blob
+- Guest shopping cart persisted in the customer’s browser
+- Guest checkout with server-side validation of products, prices, quantities, and availability
+- Inventory tracking, stock limits, preorder capacity limits, and out-of-stock protection
+- Standard delivery details, with timing and any delivery charge confirmed separately
+- Secure customer order confirmation and tracking; an order number alone does not grant access
+- Administrator authentication with active-account checks and protected admin pages/actions
+- Product management, including create/edit, archive/unarchive, safe deletion, and image management
+- Order list and detail views, searchable by order number, customer name, or phone
+- Admin order-status workflow and manual `UNPAID` / `PAID` status management; no online payments are processed
+- Historical order-item name and price snapshots
+- Login and checkout rate limiting backed by Upstash Redis
+- Customer information pages: Preorder & Shipping, Privacy, Terms, and Contact
+
+Customer accounts are not required; checkout and order tracking are guest-based.
+
+## Architecture
+
+GearLab uses the Next.js App Router for public and admin pages, with server-rendered data access and Server Actions for protected mutations. Server-side service modules keep database access, validation, and business rules separate from UI components. Prisma connects to PostgreSQL on Neon. Auth.js protects administrator access, Upstash Redis provides serverless-compatible rate limiting, and Vercel Blob stores managed product images. The application is built and hosted on Vercel.
+
+Checkout sends product IDs and quantities rather than authoritative prices. The server reloads product data, checks availability and capacity, calculates totals, and creates the order and historical item snapshots in a database transaction.
+
+## Local Development
 
 1. Install dependencies:
 
@@ -27,16 +48,16 @@ GearLab is a monochrome, premium gaming gear and tech accessories store for cust
    npm install
    ```
 
-2. Copy `.env.example` to `.env` and configure the variables below.
+2. Copy `.env.example` to `.env` and set the required environment variables for a development database and the services you intend to test. Never use production credentials for local experiments.
 
-3. Generate the Prisma client and apply existing migrations:
+3. Generate Prisma Client and apply the committed migrations to the database configured for this environment:
 
    ```bash
    npm run db:generate
    npx prisma migrate deploy
    ```
 
-4. Start the development server:
+4. Start Next.js:
 
    ```bash
    npm run dev
@@ -44,64 +65,65 @@ GearLab is a monochrome, premium gaming gear and tech accessories store for cust
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Environment variables
+To configure the initial administrator, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the local environment and run `npm run db:seed:admin`. This is a setup/bootstrap operation; those variables are not required for normal administrator sign-in. Passwords are hashed before storage.
 
-Required:
+## Environment Variable Names
 
-- `DATABASE_URL` — PostgreSQL/Neon connection string. Server-only.
-- `AUTH_SECRET` — long random Auth.js signing secret. Server-only.
-- `ADMIN_EMAIL` — used only by the local admin bootstrap script.
-- `ADMIN_PASSWORD` — used only by the local admin bootstrap script; it is hashed before storage.
+Configure values through a local ignored environment file or your deployment provider. Do not put values in source control.
 
-Required before production traffic:
+Required for application runtime:
 
-- `UPSTASH_REDIS_REST_URL` — Upstash Redis REST endpoint.
-- `UPSTASH_REDIS_REST_TOKEN` — Upstash Redis REST token.
+- `DATABASE_URL` — PostgreSQL/Neon connection string; server-only.
+- `AUTH_SECRET` — Auth.js signing secret; server-only.
 
-The rate limiter uses Upstash Redis because Vercel/serverless instances do not share process memory. Login and checkout requests fail safely in production if the rate-limiter variables are not configured. Local development can run without them.
+Required for production rate limiting:
 
-Never commit `.env`, `.env.local`, credentials, tokens, or database connection strings. Environment files are ignored by Git. `.env.example` contains placeholders only.
+- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` — shared Redis rate limits for administrator login and checkout.
 
-## Security architecture
+Required for managed product-image uploads:
 
-Public checkout sends only product IDs, quantities, and customer form data. The server validates the request, re-fetches products and prices from PostgreSQL, calculates totals, rejects unavailable products, and creates the order atomically in a Prisma transaction.
+- `BLOB_READ_WRITE_TOKEN` — server-side access to Vercel Blob.
 
-Order confirmation requires both the order number and a separate cryptographically random public access token. New checkout requests set the token in a scoped HttpOnly cookie on the server before redirecting to a clean `/order/[orderNumber]` path. Legacy `?token=` links are accepted only through a client-side exchange bridge and are removed from the URL before confirmation data is loaded. An order number alone does not reveal order details. The token is never selected for administrator lists or detail pages.
+Bootstrap only:
 
-Admin pages and Server Actions call `requireAdmin()`. That function verifies the Auth.js session, re-fetches the administrator from PostgreSQL, and requires the account to still be active. Passwords are stored only as bcrypt hashes.
+- `ADMIN_EMAIL` and `ADMIN_PASSWORD` — used by `npm run db:seed:admin` to configure an administrator; not needed for normal runtime after setup.
 
-Products and orders are accessed through server-side service modules. Customer information is available only from authenticated administrator routes.
+The environment-variable values are intentionally omitted. `.env` and `.env.local` are ignored by Git; `.env.example` contains placeholders only.
 
-The project intentionally keeps Auth.js at the existing beta version and Prisma at the existing 6.19.3 version for compatibility. The previously audited `deepmerge-ts` advisory is transitive Prisma CLI/configuration tooling, not a public runtime code path; it remains documented as an accepted temporary dependency risk until a compatible Prisma fix is available.
+## Security
 
-The structured logger only accepts safe operational fields such as event code, route label, status code, and retryability. It must not receive passwords, tokens, customer contact details, addresses, database errors, or environment values.
+- Admin pages and mutations require server-side authorization; active administrator records are rechecked against PostgreSQL.
+- Passwords are stored as bcrypt hashes, and authentication secrets remain server-only.
+- Guest order details are protected by an order-specific HttpOnly cookie. New checkout confirmation URLs omit the access token; compatible legacy token links exchange it for a scoped cookie and remove it before order details load. The order number alone reveals no order details.
+- Checkout revalidates product data and creates orders atomically; rate limiting uses shared Upstash Redis rather than in-memory state.
+- Security headers are configured in Next.js. Server logs use a structured, non-sensitive event context.
 
-## Useful scripts
+Dependency note: the project retains its compatible Auth.js beta line. The previously reviewed `deepmerge-ts` advisory is in Prisma CLI/configuration tooling rather than the deployed public runtime and remains an accepted tooling risk pending a compatible upstream fix.
 
-```bash
-npm run dev              # Development server
-npm run lint             # ESLint
-npm run build            # Production build and TypeScript checks
-npm run db:generate      # Generate Prisma client
-npm run db:validate      # Validate Prisma schema
-npm run db:format        # Format Prisma schema
-npm run db:seed          # Upsert the mock catalog
-npm run db:seed:admin    # Configure the local admin from env values
-npm run db:verify        # Verify the product catalog without printing raw errors
-npm run db:test:crud     # Run the non-destructive product CRUD check
-```
-
-## Main structure
+## Project Structure
 
 ```text
-src/app/                 Next.js routes, pages, and Server Actions
-src/components/          Shared visual components
-src/features/cart/       Guest cart state and utilities
-src/features/products/   Product presentation and catalog components
-src/lib/                 Prisma and shared infrastructure, including rate limiting
-src/server/              Server-only product, order, and authorization services
-prisma/                  Schema, migrations, seed, and verification scripts
-public/                  Static brand and demo assets
+src/app/                 Public/admin routes, pages, and Server Actions
+src/components/site/     Shared storefront layout and information-page components
+src/features/cart/       Guest cart state, types, and utilities
+src/features/products/   Product catalog and presentation components
+src/lib/                 Shared infrastructure, Prisma client, and rate limiting
+src/server/              Server-side product, order, and authorization services
+prisma/                  Database schema, migrations, seed, and verification scripts
+public/                  Static brand and demonstration assets
 ```
 
-The public storefront visual design remains intentionally separate from the server-side data and security layers.
+## Useful Commands
+
+```bash
+npm run dev                 # Start the local development server
+npm run lint                # Run ESLint
+npm run build               # Generate Prisma Client and build for production
+npx tsc --noEmit            # Run a TypeScript check
+npm run db:validate         # Validate the Prisma schema
+npm run db:generate         # Generate Prisma Client
+npm run db:test:crud        # Test product CRUD and archive safety
+npm run db:test:inventory   # Test stock and preorder limits
+npm run db:test:security    # Test order access and security behavior
+npm run db:test:product-images # Test managed product image behavior
+```
