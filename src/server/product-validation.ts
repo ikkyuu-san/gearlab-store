@@ -8,6 +8,17 @@ const optionalText = (max: number) => z.string().trim().max(max).transform((valu
 const sku = z.string().trim().toUpperCase().transform((value) => value || null).pipe(z.string().max(80).regex(/^[A-Z0-9][A-Z0-9._/-]*$/).nullable()).optional().transform((value) => value ?? null);
 const quantityLimit = z.number().int().min(0).max(1_000_000).nullable().optional().transform((value) => value ?? null);
 const preorderEta = z.union([z.iso.date(), z.literal("")]).optional().transform((value) => value ? new Date(`${value}T00:00:00.000Z`) : null);
+const specificationRow = z.object({
+  name: z.string().trim().max(100),
+  value: z.string().trim().max(500),
+}).superRefine((row, context) => {
+  if (Boolean(row.name) !== Boolean(row.value)) {
+    context.addIssue({ code: "custom", message: "Enter both a specification name and value, or leave both empty." });
+  }
+});
+const specifications = z.array(specificationRow).max(50).optional().transform((rows) =>
+  rows?.filter((row) => row.name && row.value).map((row, position) => ({ ...row, position })) ?? [],
+);
 
 const productFields = {
   name: z.string().trim().min(1).max(200),
@@ -15,7 +26,7 @@ const productFields = {
   category,
   brand: optionalText(120),
   sku,
-  priceTHB: z.number().int().min(0).max(100_000_000),
+  priceMMK: z.number().int().min(0).max(100_000_000),
   imageUrl,
   imageAlt: optionalText(300),
   stockStatus: z.enum(["PREORDER", "IN_STOCK", "OUT_OF_STOCK"]),
@@ -23,6 +34,7 @@ const productFields = {
   preorderLimit: quantityLimit,
   preorderEta,
   featured: z.boolean(),
+  specifications,
 };
 
 const inventoryMode = <T extends { stockStatus?: string; stockQuantity?: number | null; preorderLimit?: number | null }>(schema: z.ZodType<T>) => schema.superRefine((value, context) => {

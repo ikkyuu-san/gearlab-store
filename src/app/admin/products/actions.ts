@@ -14,6 +14,8 @@ function inputFromForm(formData: FormData) {
     const value = String(formData.get(name) ?? "").trim();
     return value ? Number(value) : null;
   };
+  const specificationNames = formData.getAll("specificationName");
+  const specificationValues = formData.getAll("specificationValue");
   return {
     name: String(formData.get("name") ?? ""),
     slug: String(formData.get("slug") ?? ""),
@@ -21,13 +23,17 @@ function inputFromForm(formData: FormData) {
     category: String(formData.get("category") ?? ""),
     brand: String(formData.get("brand") ?? ""),
     sku: String(formData.get("sku") ?? ""),
-    priceTHB: Number(formData.get("priceTHB") ?? 0),
+    priceMMK: Number(formData.get("priceMMK") ?? 0),
     imageAlt: String(formData.get("imageAlt") ?? ""),
     stockStatus: String(formData.get("stockStatus") ?? "PREORDER"),
     stockQuantity: optionalQuantity("stockQuantity"),
     preorderLimit: optionalQuantity("preorderLimit"),
     preorderEta: String(formData.get("preorderEta") ?? ""),
     featured: formData.get("featured") === "on",
+    specifications: specificationNames.map((name, index) => ({
+      name: typeof name === "string" ? name : "",
+      value: typeof specificationValues[index] === "string" ? specificationValues[index] : "",
+    })),
   };
 }
 

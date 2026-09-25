@@ -10,7 +10,7 @@ export type Product = {
   image: string | null;
   imageAlt: string;
   description: string;
-  details: string[];
+  specifications: Array<{ name: string; value: string }>;
   availabilityMessage?: string;
   availableQuantity?: number | null;
   preorderEta?: string | null;

@@ -5,7 +5,7 @@ import type { OrderStatus } from "@prisma/client";
 import { Footer } from "@/components/site/footer";
 import { Header } from "@/components/site/header";
 import { Icon } from "@/components/site/icon";
-import { formatCartPrice } from "@/features/cart/cart-utils";
+import { formatOrderAmount } from "@/lib/currency";
 import { getOrderByNumberAndToken } from "@/server/orders";
 import { orderAccessCookieName } from "@/server/order-access";
 import { OrderAccessGate } from "../order-access-gate";
@@ -74,20 +74,20 @@ export default async function OrderConfirmationPage({ params }: PageProps<"/orde
                     <div className="tracking-item" key={`${item.productNameSnapshot}-${item.quantity}`}>
                       <div className="tracking-item-copy">
                         <strong>{item.productNameSnapshot}</strong>
-                        <small>{formatCartPrice(item.priceSnapshot)} each · quantity {item.quantity}</small>
+                        <small>{formatOrderAmount(item.priceSnapshot, order.currency)} each · quantity {item.quantity}</small>
                         {item.product.stockStatus === "PREORDER" ? (
                           <span className="tracking-preorder-note">
                             Current listing: Preorder{item.product.preorderEta ? ` · estimated arrival ${arrivalDate.format(item.product.preorderEta)}` : " · arrival estimate to be confirmed"}. GearLab will confirm timing for your order.
                           </span>
                         ) : null}
                       </div>
-                      <strong className="tracking-item-total">{formatCartPrice(item.lineTotal)}</strong>
+                      <strong className="tracking-item-total">{formatOrderAmount(item.lineTotal, order.currency)}</strong>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="cart-summary-row"><span>Product total before delivery</span><strong>{formatCartPrice(order.totalTHB ?? order.subtotal)}</strong></div>
+              <div className="cart-summary-row"><span>Product total before delivery</span><strong>{formatOrderAmount(order.totalAmount ?? order.subtotal, order.currency)}</strong></div>
               <p className="cart-summary-note">Delivery timing and any delivery charge are confirmed separately. No payment has been collected through this page.</p>
               <p className="confirmation-next">GearLab will contact you using the details provided if we need to confirm anything about your order.</p>
               <Link href="/shop" className="button button-primary">Continue shopping <Icon name="arrow" /></Link>

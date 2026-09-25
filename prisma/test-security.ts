@@ -5,7 +5,7 @@ import { createGuestOrder, getAdminOrders, getOrderByNumberAndToken, updateOrder
 const prisma = new PrismaClient();
 
 async function main() {
-  const product = await prisma.product.findFirst({ where: { stockStatus: { not: "OUT_OF_STOCK" } }, select: { id: true, priceTHB: true } });
+  const product = await prisma.product.findFirst({ where: { stockStatus: { not: "OUT_OF_STOCK" } }, select: { id: true, priceMMK: true } });
   if (!product) throw new Error("No orderable product is available for security verification.");
 
   const result = await createGuestOrder({
@@ -24,9 +24,9 @@ async function main() {
     const missingTokenHidden = !(await getOrderByNumberAndToken(result.orderNumber, ""));
     const incorrectTokenHidden = !(await getOrderByNumberAndToken(result.orderNumber, "x".repeat(43)));
     const snapshot = await prisma.orderItem.findFirst({ where: { order: { orderNumber: result.orderNumber } }, select: { priceSnapshot: true } });
-    const serverPriceSnapshotCorrect = snapshot?.priceSnapshot === product.priceTHB;
-    const orderSummary = await prisma.order.findUnique({ where: { orderNumber: result.orderNumber }, select: { id: true, totalTHB: true, subtotal: true, deliveryMethod: true } });
-    const deliverySummaryCorrect = orderSummary?.deliveryMethod === "STANDARD" && orderSummary.totalTHB === orderSummary.subtotal;
+    const serverPriceSnapshotCorrect = snapshot?.priceSnapshot === product.priceMMK;
+    const orderSummary = await prisma.order.findUnique({ where: { orderNumber: result.orderNumber }, select: { id: true, totalAmount: true, currency: true, subtotal: true, deliveryMethod: true } });
+    const deliverySummaryCorrect = orderSummary?.deliveryMethod === "STANDARD" && orderSummary.totalAmount === orderSummary.subtotal && orderSummary.currency === "MMK";
     const statusUpdated = orderSummary ? await updateOrderStatus(orderSummary.id, "CONFIRMED") : null;
     const paymentUpdated = orderSummary ? await updateOrderPaymentStatus(orderSummary.id, "PAID") : null;
     const paymentRecord = await prisma.order.findUnique({ where: { orderNumber: result.orderNumber }, select: { paymentStatus: true } });

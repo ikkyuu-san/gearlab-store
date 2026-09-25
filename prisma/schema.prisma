@@ -15,7 +15,7 @@ model Product {
   category        String
   brand           String?
   sku             String?            @unique
-  priceTHB        Int
+  priceMMK        Int
   imageUrl        String?
   imageAlt        String?
   imageStorageKey String?
@@ -29,6 +29,7 @@ model Product {
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   orderItems      OrderItem[]
+  specifications  ProductSpecification[]
 
   @@index([category])
   @@index([featured])
@@ -45,13 +46,25 @@ model Admin {
   updatedAt    DateTime @updatedAt
 }
 
+model ProductSpecification {
+  id        String  @id @default(cuid())
+  productId String
+  name      String
+  value     String
+  position  Int     @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, position])
+}
+
 model Order {
   id                String         @id @default(cuid())
   customerName      String
   phone             String
   contactMethod     ContactMethod?
   shippingAddress   String?
-  totalTHB          Int?
+  totalAmount       Int?
+  currency          OrderCurrency @default(THB)
   status            OrderStatus    @default(PENDING)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
@@ -114,4 +127,9 @@ enum DeliveryMethod {
 enum PaymentStatus {
   UNPAID
   PAID
+}
+
+enum OrderCurrency {
+  MMK
+  THB
 }

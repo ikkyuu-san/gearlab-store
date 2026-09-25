@@ -24,7 +24,7 @@ async function createFixture(stockStatus: ProductStockStatus, stockQuantity: num
       name: "Temporary Inventory Verification Product",
       description: "Temporary product used by the inventory verification script.",
       category: "keyboards",
-      priceTHB: 100,
+      priceMMK: 100,
       stockStatus,
       stockQuantity,
       preorderLimit,

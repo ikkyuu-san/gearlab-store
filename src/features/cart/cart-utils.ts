@@ -1,7 +1,8 @@
 import { MAX_CART_QUANTITY, type CartItem, type CartProduct } from "./cart-types";
+import { formatMMK } from "@/lib/currency";
 
 export function formatCartPrice(price: number) {
-  return `${new Intl.NumberFormat("en-US").format(price)} THB`;
+  return formatMMK(price);
 }
 
 export function getCartItemCount(items: CartItem[]) {

@@ -12,7 +12,11 @@ export function ProductDetails({ product }: { product: Product }) {
       <div className="detail-price"><strong>{formatPrice(product.price)}</strong><span className="status-badge">{product.status}</span></div>
       <p>{product.description}</p>
       <p className="product-availability product-detail-availability">{product.availabilityMessage ?? product.status}</p>
-      <ul className="product-specs">{product.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>
+      {product.specifications.length > 0 ? <section className="product-specifications" aria-labelledby="product-specifications-heading">
+        <p className="eyebrow">Product details</p>
+        <h3 id="product-specifications-heading">Specifications</h3>
+        <dl>{product.specifications.map((specification) => <div key={specification.name}><dt>{specification.name}</dt><dd>{specification.value}</dd></div>)}</dl>
+      </section> : null}
       <AddToCartButton product={product} />
       <p className="sample-note">Demo product with illustrative imagery. Checkout will be added in the next phase.</p>
     </div>

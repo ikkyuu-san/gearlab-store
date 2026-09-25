@@ -13,7 +13,7 @@ export default function TermsPage() {
         <p>Submitting checkout details creates an order request. GearLab reviews the request and confirms product availability and order details. Preorder availability and estimates can change while products are being sourced.</p>
       </InfoSection>
       <InfoSection title="Prices and delivery">
-        <p>Product prices are shown in THB. Delivery timing and any delivery charge are confirmed separately and are not included in the product total unless explicitly stated.</p>
+        <p>Product prices are shown in Myanmar Kyat (MMK). Delivery timing and any delivery charge are confirmed separately and are not included in the product total unless explicitly stated.</p>
       </InfoSection>
       <InfoSection title="Customer details">
         <p>Please provide accurate contact and delivery information and verify it before placing an order. GearLab uses these details to review and coordinate your order.</p>

@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { getAdminOrders } from "@/server/orders";
 import { requireAdmin } from "@/server/admin-auth";
 import { AdminShell } from "../admin-shell";
+import { formatOrderAmount } from "@/lib/currency";
 
-const money = new Intl.NumberFormat("en-US");
 const date = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" });
 const statuses = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"] as const;
 
@@ -41,7 +41,7 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
             <td><strong>{order.orderNumber}</strong></td>
             <td><strong>{order.customerName}</strong></td>
             <td>{order.phone}</td>
-            <td>{money.format(order.totalTHB ?? order.subtotal)} THB</td>
+            <td>{formatOrderAmount(order.totalAmount ?? order.subtotal, order.currency)}</td>
             <td><span className={`admin-status admin-status-${order.status.toLowerCase()}`}>{order.status}</span></td>
             <td><span className={`admin-status admin-payment-${order.paymentStatus.toLowerCase()}`}>{order.paymentStatus}</span></td>
             <td>{date.format(order.createdAt)}</td>

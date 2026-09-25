@@ -21,7 +21,7 @@ async function main() {
 
     let invalidCategoryHandled = false;
     try {
-      await createProduct({ slug: `${slug}-bad-category`, name: "Invalid Category", description: "Should fail.", category: "unmanaged-category", priceTHB: 1 });
+      await createProduct({ slug: `${slug}-bad-category`, name: "Invalid Category", description: "Should fail.", category: "unmanaged-category", priceMMK: 1 });
     } catch (error) {
       invalidCategoryHandled = error instanceof ProductServiceError && error.code === "INVALID_PRODUCT";
     }
@@ -34,26 +34,38 @@ async function main() {
       category: "desk",
       brand: "Verification",
       sku: `TEST-${Date.now()}`,
-      priceTHB: 1,
+      priceMMK: 1,
       imageUrl: null,
       imageAlt: "Temporary verification image description",
       stockStatus: "PREORDER",
       featured: false,
+      specifications: [
+        { name: " Weight ", value: " 55g " },
+        { name: "", value: "" },
+        { name: "Sensor", value: "PAW3395" },
+      ],
     });
     testId = created.id;
 
     const readBySlug = await getProductBySlug(slug);
     if (!readBySlug || readBySlug.id !== created.id) throw new Error("Read-by-slug verification failed.");
+    if (readBySlug.specifications.map(({ name, value }) => `${name}:${value}`).join("|") !== "Weight:55g|Sensor:PAW3395") throw new Error("Public product specification read/order verification failed.");
     const adminRecord = await getAdminProductById(created.id);
     if (!adminRecord?.active || adminRecord.brand !== "Verification" || !adminRecord.sku || adminRecord.category !== "desk-accessories" || adminRecord.imageAlt !== "Temporary verification image description") throw new Error("Product domain field verification failed.");
+    if (adminRecord.specifications.map(({ name, value, position }) => `${name}:${value}:${position}`).join("|") !== "Weight:55g:0|Sensor:PAW3395:1") throw new Error("Product specification create/trim/order verification failed.");
     if (readBySlug.imageAlt !== "Temporary verification image description") throw new Error("Product image alt text verification failed.");
 
-    const updated = await updateProduct(created.id, { name: "CRUD Test Product Updated", priceTHB: 2 });
+    const updated = await updateProduct(created.id, { name: "CRUD Test Product Updated", priceMMK: 2, specifications: [{ name: "Layout", value: "60%" }] });
     if (updated.name !== "CRUD Test Product Updated" || updated.price !== 2) throw new Error("Update verification failed.");
+    const updatedAdminRecord = await getAdminProductById(created.id);
+    if (updatedAdminRecord?.specifications.length !== 1 || updatedAdminRecord.specifications[0]?.name !== "Layout") throw new Error("Product specification edit/removal verification failed.");
+    await updateProduct(created.id, { specifications: [] });
+    const productWithoutSpecifications = await getProductBySlug(slug);
+    if (!productWithoutSpecifications || productWithoutSpecifications.specifications.length !== 0) throw new Error("Product without specifications verification failed.");
 
     let duplicateHandled = false;
     try {
-      await createProduct({ slug, name: "Duplicate Test", description: "Should fail", category: "keyboards", priceTHB: 1 });
+      await createProduct({ slug, name: "Duplicate Test", description: "Should fail", category: "keyboards", priceMMK: 1 });
     } catch (error) {
       duplicateHandled = error instanceof ProductServiceError && error.code === "DUPLICATE_SLUG";
     }

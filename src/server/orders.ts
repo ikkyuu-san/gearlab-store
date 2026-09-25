@@ -97,7 +97,7 @@ export async function createGuestOrder(input: unknown) {
 
         const productIds = parsed.data.items.map((item) => item.productId);
         await lockProductRows(transaction, productIds);
-        const products = await transaction.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true, priceTHB: true, stockStatus: true, active: true, stockQuantity: true, preorderLimit: true } });
+        const products = await transaction.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true, priceMMK: true, stockStatus: true, active: true, stockQuantity: true, preorderLimit: true } });
         const byId = new Map(products.map((product) => [product.id, product]));
         if (products.length !== productIds.length) throw new OrderServiceError("PRODUCT_UNAVAILABLE", "One or more products are no longer available.", 409);
         const committed = await getCommittedQuantities(transaction, productIds);
@@ -106,7 +106,7 @@ export async function createGuestOrder(input: unknown) {
           const product = byId.get(item.productId);
           if (!product || !product.active) throw new OrderServiceError("PRODUCT_UNAVAILABLE", "One or more products are no longer available.", 409);
           assertProductCapacity(product, item.quantity, committed.get(product.id) ?? 0);
-          return { productId: product.id, productNameSnapshot: product.name, priceSnapshot: product.priceTHB, quantity: item.quantity, lineTotal: product.priceTHB * item.quantity };
+          return { productId: product.id, productNameSnapshot: product.name, priceSnapshot: product.priceMMK, quantity: item.quantity, lineTotal: product.priceMMK * item.quantity };
         });
         const subtotal = lineItems.reduce((total, item) => total + item.lineTotal, 0);
 
@@ -121,7 +121,8 @@ export async function createGuestOrder(input: unknown) {
             deliveryAddress: parsed.data.deliveryAddress,
             note: parsed.data.note,
             subtotal,
-            totalTHB: subtotal,
+            totalAmount: subtotal,
+            currency: "MMK",
             deliveryMethod: parsed.data.deliveryMethod,
             status: "PENDING",
             items: { create: lineItems },
@@ -162,7 +163,8 @@ export function getOrderByNumberAndToken(orderNumber: string, publicAccessToken:
       customerName: true,
       deliveryAddress: true,
       subtotal: true,
-      totalTHB: true,
+      totalAmount: true,
+      currency: true,
       deliveryMethod: true,
       status: true,
       createdAt: true,
@@ -201,7 +203,8 @@ export async function getAdminOrders(input: unknown = {}) {
       phone: true,
       email: true,
       subtotal: true,
-      totalTHB: true,
+      totalAmount: true,
+      currency: true,
       status: true,
       paymentStatus: true,
       createdAt: true,
@@ -223,7 +226,8 @@ export async function getAdminOrderById(id: string) {
       deliveryMethod: true,
       note: true,
       subtotal: true,
-      totalTHB: true,
+      totalAmount: true,
+      currency: true,
       status: true,
       paymentStatus: true,
       createdAt: true,

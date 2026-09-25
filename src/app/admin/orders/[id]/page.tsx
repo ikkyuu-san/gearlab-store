@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { OrderStatus } from "@prisma/client";
 import { getAdminOrderById } from "@/server/orders";
 import { requireAdmin } from "@/server/admin-auth";
-import { formatCartPrice } from "@/features/cart/cart-utils";
+import { formatOrderAmount } from "@/lib/currency";
 import { AdminShell } from "../../admin-shell";
 import { OrderStatusForm } from "../status-form";
 import { OrderPaymentStatusForm } from "../payment-status-form";
@@ -66,18 +66,18 @@ export default async function AdminOrderDetailsPage({ params, searchParams }: Ad
         </section>
       </div>
       <section className="admin-panel admin-order-panel admin-order-items-panel">
-        <div className="admin-section-heading"><div><p className="eyebrow">Historical item snapshots</p><h2>Order items</h2></div><strong className="admin-order-total">{formatCartPrice(order.totalTHB ?? order.subtotal)}</strong></div>
+        <div className="admin-section-heading"><div><p className="eyebrow">Historical item snapshots</p><h2>Order items</h2></div><strong className="admin-order-total">{formatOrderAmount(order.totalAmount ?? order.subtotal, order.currency)}</strong></div>
         <div className="admin-order-items">
           {order.items.map((item) => (
             <div className="admin-order-item" key={item.id}>
-              <div><strong>{item.productNameSnapshot}</strong><small>{formatCartPrice(item.priceSnapshot)} each · quantity {item.quantity}</small>
+              <div><strong>{item.productNameSnapshot}</strong><small>{formatOrderAmount(item.priceSnapshot, order.currency)} each · quantity {item.quantity}</small>
                 {item.product.stockStatus === "PREORDER" ? <small className="admin-preorder-note">Current listing: Preorder{item.product.preorderEta ? ` · estimated arrival ${arrivalDate.format(item.product.preorderEta)}` : " · arrival estimate to be confirmed"}. Confirm timing with the customer.</small> : null}
               </div>
-              <strong>{formatCartPrice(item.lineTotal)}</strong>
+              <strong>{formatOrderAmount(item.lineTotal, order.currency)}</strong>
             </div>
           ))}
         </div>
-        <div className="admin-order-summary"><span>Product total before delivery</span><strong>{formatCartPrice(order.totalTHB ?? order.subtotal)}</strong></div>
+        <div className="admin-order-summary"><span>Product total before delivery</span><strong>{formatOrderAmount(order.totalAmount ?? order.subtotal, order.currency)}</strong></div>
         <p className="admin-form-hint">Delivery charges and timing are confirmed separately. Item names and prices above are preserved from when the order was placed.</p>
       </section>
     </AdminShell>

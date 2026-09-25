@@ -9,26 +9,9 @@ function categoryLabel(category: string) {
   return getProductCategoryLabel(category);
 }
 
-const detailsByCategory: Record<string, string[]> = {
-  keyboards: ["Compact layout", "Graphite finish", "Mechanical keys"],
-  mice: ["Wireless design", "Sculpted shape", "Matte black finish"],
-  audio: ["Over-ear design", "Padded earcups", "Boom microphone"],
-  "desk-accessories": ["Extended format", "Fabric surface", "Stitched edges"],
-};
+type ProductWithSpecifications = Prisma.ProductGetPayload<{ include: { specifications: true } }>;
 
-function toProduct(product: {
-  id: string;
-  category: string;
-  name: string;
-  priceTHB: number;
-  stockStatus: "PREORDER" | "IN_STOCK" | "OUT_OF_STOCK";
-  imageUrl: string | null;
-  imageAlt: string | null;
-  description: string;
-  stockQuantity: number | null;
-  preorderLimit: number | null;
-  preorderEta: Date | null;
-}, committedQuantity = 0) : Product {
+function toProduct(product: ProductWithSpecifications, committedQuantity = 0): Product {
   const availableQuantity = product.stockStatus === "IN_STOCK" && product.stockQuantity !== null
     ? Math.max(0, product.stockQuantity - committedQuantity)
     : product.stockStatus === "PREORDER" && product.preorderLimit !== null
@@ -46,12 +29,14 @@ function toProduct(product: {
     category: normalizeProductCategory(product.category),
     categoryLabel: categoryLabel(product.category),
     name: product.name,
-    price: product.priceTHB,
+    price: product.priceMMK,
     status: product.stockStatus === "OUT_OF_STOCK" || (product.stockStatus === "IN_STOCK" && availableQuantity === 0) ? "Out of Stock" : product.stockStatus === "IN_STOCK" ? "In Stock" : "Preorder",
     image: product.imageUrl,
     imageAlt: product.imageAlt?.trim() || `${product.name} product image`,
     description: product.description,
-    details: detailsByCategory[normalizeProductCategory(product.category)] ?? [],
+    specifications: product.specifications
+      .sort((left, right) => left.position - right.position)
+      .map(({ name, value }) => ({ name, value })),
     availabilityMessage,
     availableQuantity,
     preorderEta: product.preorderEta?.toISOString().slice(0, 10) ?? null,
@@ -86,12 +71,14 @@ function toServiceError(error: unknown): ProductServiceError {
 }
 
 function toCreateData(input: ProductCreateInput) {
+  const { specifications, ...fields } = input;
   return {
-    ...input,
+    ...fields,
     stockStatus: input.stockStatus as ProductStockStatus,
     stockQuantity: input.stockStatus === "IN_STOCK" ? input.stockQuantity : null,
     preorderLimit: input.stockStatus === "PREORDER" ? input.preorderLimit : null,
     preorderEta: input.stockStatus === "PREORDER" ? input.preorderEta : null,
+    specifications: { create: specifications ?? [] },
   };
 }
 
@@ -99,17 +86,18 @@ export async function listProducts(options?: { featuredOnly?: boolean }) {
   const products = await prisma.product.findMany({
     where: { active: true, ...(options?.featuredOnly ? { featured: true } : {}) },
     orderBy: { createdAt: "desc" },
+    include: { specifications: { orderBy: { position: "asc" } } },
   });
   const committed = await committedQuantities(products.map((product) => product.id));
   return products.map((product) => toProduct(product, committed.get(product.id) ?? 0));
 }
 
 export async function listAdminProducts() {
-  return prisma.product.findMany({ orderBy: { createdAt: "desc" } });
+  return prisma.product.findMany({ orderBy: { createdAt: "desc" }, include: { specifications: { orderBy: { position: "asc" } } } });
 }
 
 export async function getAdminProductById(id: string) {
-  return prisma.product.findUnique({ where: { id } });
+  return prisma.product.findUnique({ where: { id }, include: { specifications: { orderBy: { position: "asc" } } } });
 }
 
 export async function getProductOverview() {
@@ -123,14 +111,14 @@ export async function getProductOverview() {
 }
 
 export async function getProductBySlug(slug: string) {
-  const product = await prisma.product.findFirst({ where: { slug, active: true } });
+  const product = await prisma.product.findFirst({ where: { slug, active: true }, include: { specifications: { orderBy: { position: "asc" } } } });
   if (!product) return null;
   const committed = await committedQuantities([product.id]);
   return toProduct(product, committed.get(product.id) ?? 0);
 }
 
 export async function getProductById(id: string) {
-  const product = await prisma.product.findFirst({ where: { id, active: true } });
+  const product = await prisma.product.findFirst({ where: { id, active: true }, include: { specifications: { orderBy: { position: "asc" } } } });
   if (!product) return null;
   const committed = await committedQuantities([product.id]);
   return toProduct(product, committed.get(product.id) ?? 0);
@@ -145,7 +133,7 @@ export async function createProduct(input: unknown) {
   }
 
   try {
-    return toProduct(await prisma.product.create({ data: toCreateData(data) }));
+    return toProduct(await prisma.product.create({ data: toCreateData(data), include: { specifications: true } }));
   } catch (error) {
     throw toServiceError(error);
   }
@@ -160,15 +148,25 @@ export async function updateProduct(id: string, input: unknown) {
   }
 
   try {
-    return toProduct(await prisma.product.update({
-      where: { id },
-      data: {
-        ...data,
-        stockStatus: data.stockStatus as ProductStockStatus | undefined,
-        ...(data.stockStatus === "IN_STOCK" ? { preorderLimit: null, preorderEta: null } : {}),
-        ...(data.stockStatus === "PREORDER" ? { stockQuantity: null } : {}),
-        ...(data.stockStatus === "OUT_OF_STOCK" ? { stockQuantity: null, preorderLimit: null, preorderEta: null } : {}),
-      },
+    const { specifications, ...fields } = data;
+    return toProduct(await prisma.$transaction(async (transaction) => {
+      await transaction.product.update({
+        where: { id },
+        data: {
+          ...fields,
+          stockStatus: fields.stockStatus as ProductStockStatus | undefined,
+          ...(fields.stockStatus === "IN_STOCK" ? { preorderLimit: null, preorderEta: null } : {}),
+          ...(fields.stockStatus === "PREORDER" ? { stockQuantity: null } : {}),
+          ...(fields.stockStatus === "OUT_OF_STOCK" ? { stockQuantity: null, preorderLimit: null, preorderEta: null } : {}),
+        },
+      });
+      if (specifications !== undefined) {
+        await transaction.productSpecification.deleteMany({ where: { productId: id } });
+        if (specifications.length > 0) {
+          await transaction.productSpecification.createMany({ data: specifications.map((specification) => ({ ...specification, productId: id })) });
+        }
+      }
+      return transaction.product.findUniqueOrThrow({ where: { id }, include: { specifications: true } });
     }));
   } catch (error) {
     throw toServiceError(error);

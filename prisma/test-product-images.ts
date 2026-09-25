@@ -30,7 +30,7 @@ async function main() {
       name: "Temporary Image Upload Verification",
       description: "Temporary product used only by the managed image verification script.",
       category: "keyboards",
-      priceTHB: 1,
+      priceMMK: 1,
       active: true,
     }, select: { id: true } });
     testProductId = product.id;

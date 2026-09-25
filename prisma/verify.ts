@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   const products = await prisma.product.findMany({
-    select: { name: true, category: true, priceTHB: true, stockStatus: true },
+    select: { name: true, category: true, priceMMK: true, stockStatus: true },
     orderBy: { name: "asc" },
   });
 
