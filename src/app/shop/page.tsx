@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Shop | GearLab",
-  description: "Explore GearLab’s gaming gear and tech accessories catalog preview.",
+  description: "Explore GearLab’s gaming gear and tech accessories.",
 };
 
 export default async function Shop({ searchParams }: PageProps<"/shop">) {

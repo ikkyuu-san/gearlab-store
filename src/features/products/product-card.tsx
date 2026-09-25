@@ -10,7 +10,6 @@ export function ProductCard({ product, onView }: { product: Product; onView: () 
       <button type="button" className="product-image" onClick={onView} aria-label={`View ${product.name}`}>
         <ProductImage src={product.image} alt={product.imageAlt} />
         <span className={`status-badge${product.status === "In Stock" ? " status-stock" : ""}`}>{product.status}</span>
-        <span className="demo-label">Demo</span>
       </button>
       <div className="product-info">
         <p className="eyebrow">{product.categoryLabel}</p>

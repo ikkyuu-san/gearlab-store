@@ -45,8 +45,8 @@ async function HomeContent() {
               <p className="hero-route"><Icon name="box" width={17} height={17} />Thailand <span aria-hidden="true">→</span> Myanmar<span className="route-divider" />Selected for your setup.</p>
             </div>
             <figure className="hero-visual">
-              <div className="hero-image"><Image src="/images/demo-setup.png" alt="Demo setup with a charcoal keyboard, black mouse, and over-ear headphones" width={1536} height={1024} sizes="(max-width: 899px) 100vw, 55vw" preload /><span className="hero-image-label">THE EVERYDAY SETUP</span></div>
-              <figcaption><span>Good gear. Considered details.</span><span>Demo product imagery</span></figcaption>
+              <div className="hero-image"><Image src="/images/demo-setup.png" alt="Setup with a charcoal keyboard, black mouse, and over-ear headphones" width={1536} height={1024} sizes="(max-width: 899px) 100vw, 55vw" preload /><span className="hero-image-label">THE EVERYDAY SETUP</span></div>
+              <figcaption><span>Good gear. Considered details.</span><span>Gear for your everyday setup</span></figcaption>
             </figure>
           </div>
         </section>

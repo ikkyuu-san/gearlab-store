@@ -39,7 +39,6 @@ export function ProductCatalog({ products, shop = false, initialCategory = "all"
       </div>
       <div className="product-grid">{filteredProducts.map((product) => <ProductCard key={product.id} product={product} onView={() => setSelected(product)} />)}</div>
       {filteredProducts.length === 0 && <div className="empty-state"><Icon name="search" width={32} height={32} /><h2>No gear found.</h2><p>Try another search or browse all categories.</p><button className="button button-secondary" type="button" onClick={() => { setQuery(""); setCategory("all"); }}>Show all gear <Icon name="arrow" /></button></div>}
-      <p className="sample-note">Catalog preview · Products, imagery, prices, and stock statuses are illustrative examples.</p>
       <Dialog open={selected !== null} onClose={() => setSelected(null)} title="Product preview">{selected && <ProductDetails product={selected} />}</Dialog>
     </section>
   );

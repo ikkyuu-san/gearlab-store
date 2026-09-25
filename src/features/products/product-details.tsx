@@ -18,7 +18,6 @@ export function ProductDetails({ product }: { product: Product }) {
         <dl>{product.specifications.map((specification) => <div key={specification.name}><dt>{specification.name}</dt><dd>{specification.value}</dd></div>)}</dl>
       </section> : null}
       <AddToCartButton product={product} />
-      <p className="sample-note">Demo product with illustrative imagery. Checkout will be added in the next phase.</p>
     </div>
   );
 }
